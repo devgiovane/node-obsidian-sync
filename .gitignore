@@ -1,0 +1,7 @@
+node_modules/
+# IDE's
+.idea/
+.vscode/
+# Keys
+.env
+key.json
