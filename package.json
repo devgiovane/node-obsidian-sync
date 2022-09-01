@@ -5,13 +5,15 @@
     "license": "MIT",
     "type": "module",
     "scripts": {
+        "start": "node",
         "sync": "node src/cmd/sync.mjs",
         "clean": "node src/cmd/clear.mjs"
     },
     "dependencies": {
         "dotenv": "^16.0.2",
         "google-auth-library": "^8.5.1",
-        "googleapis": "^107.0.0"
+        "googleapis": "^107.0.0",
+        "node-schedule": "^2.1.0"
     },
     "devDependencies": {
         "@types/node": "^18.7.14"
