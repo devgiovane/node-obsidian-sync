@@ -5,7 +5,7 @@ import * as drive from './services/drive.mjs';
 
 dotenv.config();
 
-async function syncObsidian(local, folderId, folderName) {
+async function syncObsidian(local, folderId) {
     const ignoredFiles = [ '.DS_Store', '.obsidian' ];
     const obsidianFiles = fs.readdirSync(local, { withFileTypes: true });
     for (const file of obsidianFiles) {
@@ -14,7 +14,7 @@ async function syncObsidian(local, folderId, folderName) {
         }
         if (file.isFile()) {
             const ext = path.extname(file.name);
-            const exist = await drive.exists(file.name);
+            const exist = await drive.exists(file.name, folderId);
             if (exist) continue;
             if(ext === '.md') {
                 const id = await drive.createFileIn(
@@ -23,7 +23,8 @@ async function syncObsidian(local, folderId, folderName) {
                     'text/markdown',
                     `${local}/${file.name}`
                 );
-                console.log('File uploaded', id)
+                console.log('File uploaded', id);
+                continue;
             }
             if (ext === '.png') {
                 const id = await drive.createFileIn(
@@ -32,17 +33,18 @@ async function syncObsidian(local, folderId, folderName) {
                     'image/png',
                     `${local}/${file.name}`
                 );
-                console.log('File uploaded', id)
+                console.log('Image uploaded', id);
+                continue;
             }
         }
         if (file.isDirectory()) {
-            const exist = await drive.folderExists(file.name, folderName);
+            const exist = await drive.folderExists(file.name, folderId);
             if (exist) {
                 await syncObsidian(
                     `${local}/${file.name}`,
-                    exist.id,
-                    file.name
+                    exist.id
                 );
+                continue;
             }
             const id = await drive.createFolderIn(
                 folderId,
@@ -51,8 +53,7 @@ async function syncObsidian(local, folderId, folderName) {
             console.log('Directory uploaded', id);
             await syncObsidian(
                 `${local}/${file.name}`,
-                id,
-                file.name
+                id
             );
         }
     }
@@ -62,7 +63,6 @@ try {
     await syncObsidian(
         process.env.GOOGLE_DRIVE_THIS_FOLDER_SYNC,
         process.env.GOOGLE_DRIVE_FOLDER_SYNC,
-        'obsidian'
     );
 } catch (err) {
     console.log(err);

@@ -4,14 +4,15 @@ import { google } from 'googleapis';
 
 const service = google.drive({ version: 'v3', auth });
 
-export const exists = async function (name) {
+export const exists = async function (name, folderId) {
     try {
         const res = await service.files.list({
-            q: `name='${name}' and trashed = false`,
+            q: `'${folderId}' in parents and name = '${name}' and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
             fields: 'files(id, name)',
             spaces: 'drive',
         });
         if(res.data.files.length) {
+            console.log(res.data.files);
             const [ file ] = res.data.files;
             return file;
         }
@@ -21,14 +22,15 @@ export const exists = async function (name) {
     }
 }
 
-export const folderExists = async function (name) {
+export const folderExists = async function (name, folderId) {
     try {
         const res = await service.files.list({
-            q: `name='${name}' and trashed = false and mimeType='application/vnd.google-apps.folder'`,
+            q: `'${folderId}' in parents and name = '${name}' and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
             fields: 'files(id, name)',
             spaces: 'drive',
         });
         if(res.data.files.length) {
+            console.log(res.data.files);
             const [ file ] = res.data.files;
             return file;
         }
