@@ -4,28 +4,15 @@ import { google } from 'googleapis';
 
 const service = google.drive({ version: 'v3', auth });
 
-export const exists = async function (name, folderId) {
+export const exists = async function (name, where, isFolder = false) {
     try {
         const res = await service.files.list({
-            q: `'${folderId}' in parents and name = '${name}' and trashed = false and mimeType != 'application/vnd.google-apps.folder'`,
-            fields: 'files(id, name)',
-            spaces: 'drive',
-        });
-        if(res.data.files.length) {
-            console.log(res.data.files);
-            const [ file ] = res.data.files;
-            return file;
-        }
-        return null;
-    } catch (err) {
-        throw err;
-    }
-}
-
-export const folderExists = async function (name, folderId) {
-    try {
-        const res = await service.files.list({
-            q: `'${folderId}' in parents and name = '${name}' and trashed = false and mimeType = 'application/vnd.google-apps.folder'`,
+            q: `
+                '${where}' in parents and 
+                name = '${name}' and 
+                trashed = false and 
+                mimeType ${isFolder ? '=' : '!=' } 'application/vnd.google-apps.folder'
+            `,
             fields: 'files(id, name)',
             spaces: 'drive',
         });
@@ -52,39 +39,25 @@ export const list = async function () {
     }
 }
 
-export const createFileIn = async function (folder, name, type, path) {
+export const create = async function (where, name, type, path = null, isFolder = false) {
     const fileMetadata = {
         name,
-        parents: [ folder ],
+        parents: [ where ],
         mimeType: type
     };
-    const media = {
-        mimeType: 'image/jpeg',
-        body: fs.createReadStream(path),
+    let params = {
+        resource: fileMetadata,
+        fields: 'id',
     };
-    try {
-        const file = await service.files.create({
-            resource: fileMetadata,
-            media,
-            fields: 'id',
-        });
-        return file.data.id;
-    } catch (err) {
-        throw err;
+    if (!isFolder) {
+        const media = {
+            mimeType: type,
+            body: fs.createReadStream(path),
+        };
+        params = { ...params, media };
     }
-}
-
-export const createFolderIn = async function (folder, name) {
-    const fileMetadata = {
-        name,
-        parents: [ folder ],
-        mimeType: 'application/vnd.google-apps.folder'
-    };
     try {
-        const file = await service.files.create({
-            resource: fileMetadata,
-            fields: 'id',
-        });
+        const file = await service.files.create(params);
         return file.data.id;
     } catch (err) {
         throw err;

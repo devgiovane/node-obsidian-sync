@@ -5,7 +5,8 @@
     "license": "MIT",
     "type": "module",
     "scripts": {
-        "start": "node"
+        "sync": "node src/cmd/sync.mjs",
+        "clean": "node src/cmd/clear.mjs"
     },
     "dependencies": {
         "dotenv": "^16.0.2",

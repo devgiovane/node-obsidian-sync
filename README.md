@@ -6,11 +6,15 @@
 
 ### Concepts:
 
-- 
+- Google Drive API
 
 ### Commands
 
+Create key.json in [Google Console](https://console.cloud.google.com/).
+
+Manual Sync
 ```bash
+yarn sync
 ```
 
 ### Create by
