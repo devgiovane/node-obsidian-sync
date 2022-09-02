@@ -19,10 +19,18 @@ export async function sync(local, folderId) {
     const ignored = [ '.DS_Store', '.obsidian' ];
     const files = fs.readdirSync(local, { withFileTypes: true });
     for (const file of files) {
+        const stat = await fs.statSync(`${local}/${file.name}`);
         if (ignored.includes(file.name)) continue;
         if (file.isFile()) {
+            let fileChanged = true;
             const exist = await drive.exists(file.name, folderId);
-            if (exist) continue;
+            if (exist) {
+                fileChanged = new Date(exist.modifiedTime) < new Date(stat.mtime);
+            }
+            if (exist && !fileChanged) continue;
+            if (exist && fileChanged) {
+                await drive.exclude(exist.id);
+            }
             const ext = path.extname(file.name);
             if(ext === '.md') {
                 const id = await drive.create(folderId, file.name, 'text/markdown', `${local}/${file.name}`);

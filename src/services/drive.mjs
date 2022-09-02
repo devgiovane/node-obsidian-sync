@@ -13,7 +13,7 @@ export const exists = async function (name, where, isFolder = false) {
                 trashed = false and 
                 mimeType ${isFolder ? '=' : '!=' } 'application/vnd.google-apps.folder'
             `,
-            fields: 'files(id, name)',
+            fields: 'files(id, name, modifiedTime)',
             spaces: 'drive',
         });
         if(res.data.files.length) {
