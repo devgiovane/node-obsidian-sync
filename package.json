@@ -5,7 +5,7 @@
     "license": "MIT",
     "type": "module",
     "scripts": {
-        "start": "node",
+        "start": "node src/index.mjs",
         "sync": "node src/cmd/sync.mjs",
         "clean": "node src/cmd/clear.mjs"
     },
