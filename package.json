@@ -6,8 +6,8 @@
     "type": "module",
     "scripts": {
         "start": "node src/index.mjs",
-        "sync": "node src/cmd/sync.mjs",
-        "clean": "node src/cmd/clear.mjs"
+        "sync": "node src/command/sync.mjs",
+        "clean": "node src/command/clear.mjs"
     },
     "dependencies": {
         "dotenv": "^16.0.2",

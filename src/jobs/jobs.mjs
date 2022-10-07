@@ -1,57 +1,77 @@
 import fs from "node:fs";
 import path from "node:path";
-import * as drive from "../services/drive.mjs";
+//
+import { Drive } from "../services/drive.mjs";
 
-export async function clear() {
-    const ignored = [ 'sync', 'obsidian' ];
-    const files = await drive.list(process.env.GOOGLE_DRIVE_FOLDER_SYNC);
-    for (const file of files) {
-        if (ignored.includes(file.name)) {
-            console.log('Ignored', file.id);
-            continue;
-        }
-        console.log('Deleted', file.id);
-        await drive.exclude(file.id);
+export class Jobs {
+    #drive = new Drive();
+    #filesInDrive = [];
+
+    constructor() {
     }
-}
 
-export async function sync(local, folderId) {
-    const ignored = [ '.DS_Store', '.obsidian' ];
-    const files = fs.readdirSync(local, { withFileTypes: true });
-    for (const file of files) {
-        const stat = await fs.statSync(`${local}/${file.name}`);
-        if (ignored.includes(file.name)) continue;
-        if (file.isFile()) {
-            let fileChanged = true;
-            const exist = await drive.exists(file.name, folderId);
-            if (exist) {
-                fileChanged = new Date(exist.modifiedTime) < new Date(stat.mtime);
-            }
-            if (exist && !fileChanged) continue;
-            if (exist && fileChanged) {
-                await drive.exclude(exist.id);
-            }
-            const ext = path.extname(file.name);
-            if(ext === '.md') {
-                const id = await drive.create(folderId, file.name, 'text/markdown', `${local}/${file.name}`);
-                console.log('File uploaded', id);
+    async load(q) {
+        this.#filesInDrive = await this.#drive.list(q);
+    }
+
+    async clean() {
+        const ignored = [ 'sync', 'obsidian' ];
+        for (const file of this.#filesInDrive) {
+            if (ignored.includes(file.name)) {
+                console.log(`Ignored id: ${file.id} name: ${file.name}`);
                 continue;
             }
-            if (ext === '.png') {
-                const id = await drive.create(folderId, file.name, 'image/png', `${local}/${file.name}`);
-                console.log('Image uploaded', id);
-                continue;
-            }
+            console.log(`Deleted id: ${file.id} name: ${file.name}`);
+            await this.#drive.exclude(file.id);
         }
-        if (file.isDirectory()) {
-            const exist = await drive.exists(file.name, folderId, true);
-            if (exist) {
-                await sync(`${local}/${file.name}`, exist.id);
+    }
+
+    async sync(local, folderId) {
+        const ignored = [ '.DS_Store', '.obsidian' ];
+        const filesInLocal = fs.readdirSync(local, { withFileTypes: true });
+        for (const file of filesInLocal) {
+            console.log(`Verify name: ${file.name}`)
+            const stat = await fs.statSync(`${local}/${file.name}`);
+            if (ignored.includes(file.name)) {
+                console.log(`Ignored name: ${file.name}`);
                 continue;
             }
-            const id = await drive.create(folderId, file.name, 'application/vnd.google-apps.folder', null, true);
-            await sync(`${local}/${file.name}`, id);
-            console.log('Directory uploaded', id);
+            if (file.isFile()) {
+                let fileChanged = true;
+                const exist = await this.#drive.exists(file.name, folderId);
+                if (exist) {
+                    const fileDriveIndex = this.#filesInDrive.findIndex(fileDrive => file.name === fileDrive.name);
+                    this.#filesInDrive.splice(fileDriveIndex, 1);
+                    fileChanged = new Date(exist.modifiedTime) < new Date(stat.mtime);
+                }
+                if (exist && !fileChanged) continue;
+                if (exist && fileChanged) {
+                    await this.#drive.exclude(exist.id);
+                }
+                const ext = path.extname(file.name);
+                if(ext === '.md') {
+                    const id = await this.#drive.create(folderId, file.name, 'text/markdown', `${local}/${file.name}`);
+                    console.log(`File uploaded id: ${id} name: ${file.name}`);
+                    continue;
+                }
+                if (ext === '.png') {
+                    const id = await this.#drive.create(folderId, file.name, 'image/png', `${local}/${file.name}`);
+                    console.log(`Image uploaded id: ${id} name: ${file.name}`);
+                    continue;
+                }
+            }
+            if (file.isDirectory()) {
+                const exist = await this.#drive.exists(file.name, folderId, true);
+                if (exist) {
+                    const fileDriveIndex = this.#filesInDrive.findIndex(fileDrive => file.name === fileDrive.name);
+                    this.#filesInDrive.splice(fileDriveIndex, 1);
+                    await this.sync(`${local}/${file.name}`, exist.id);
+                    continue;
+                }
+                const id = await this.#drive.create(folderId, file.name, 'application/vnd.google-apps.folder', null, true);
+                await this.sync(`${local}/${file.name}`, id);
+                console.log(`Directory uploaded id ${id} name: ${file.name}`);
+            }
         }
     }
 }
